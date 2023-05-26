@@ -1,0 +1,24 @@
+<?php
+    $_category_desc = $this->helper('Smartwave\Porto\Helper\Data')->getConfig('porto_settings/category/category_description');
+?>
+<?php if ($_category_desc == "full_width" && $_description = $block->getCurrentCategory()->getDescription()): ?>
+    <div class="category-description no-margin">
+        <?php echo $this->helper('Magento\Catalog\Helper\Output')->categoryAttribute($block->getCurrentCategory(), $_description, 'description') ?>
+    </div>
+    <script type="text/javascript">
+    require([
+        'jquery'
+    ], function ($) {
+        var resizeDesc = function(){
+          var $d_h = $('.page-wrapper .category-description').height();
+          $('body:not(.cms-index-index) .page-wrapper > .breadcrumbs + .page-main > .page-main-inner > .sidebar-nav').css({
+            'margin-top': -$d_h
+          });
+        }
+        resizeDesc();
+        $(window).resize(function(){
+          resizeDesc();
+        });
+    });
+    </script>
+<?php endif; ?>

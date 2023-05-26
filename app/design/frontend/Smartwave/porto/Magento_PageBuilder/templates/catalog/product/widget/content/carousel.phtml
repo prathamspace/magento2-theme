@@ -1,0 +1,307 @@
+<?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+use Magento\Framework\App\Action\Action;
+
+// phpcs:disable Magento2.Templates.ThisInTemplate
+// phpcs:disable Generic.Files.LineLength.TooLong
+
+/** @var \Magento\CatalogWidget\Block\Product\ProductsList $block */
+?>
+<?php
+/**
+ * Product carousel widget template
+ *
+ * @var \Magento\Framework\Escaper $escaper
+ */
+ $_portohelper = $this->helper('Smartwave\Porto\Helper\Data');
+ $_category_config = $_portohelper->getConfig('porto_settings/category');
+ $_category_grid_config = $_portohelper->getConfig('porto_settings/category_grid');
+ $_product_label_config = $_portohelper->getConfig('porto_settings/product_label');
+ $_lazyload = $_portohelper->getConfig('porto_settings/optimization/lazyload');
+ $product_type = $_category_grid_config['product_type'];
+ $_imagehelper = $this->helper('Magento\Catalog\Helper\Image');
+ $_helper = $this->helper('Magento\Catalog\Helper\Output');
+?>
+  <?php if ($exist = ($block->getProductCollection() && $block->getProductCollection()->getSize())): ?>
+    <?php
+    $type = 'widget-product-carousel';
+
+    $image = 'category_page_list';
+    $hover_image = 'category_page_list-hover';
+    $items = $block->getProductCollection()->getItems();
+    $mode = 'grid';
+    $showWishlist = true;
+    $showCompare = true;
+    $showCart = true;
+    $templateType = \Magento\Catalog\Block\Product\ReviewRendererInterface::SHORT_VIEW;
+    $image_width = ($_category_config['ratio_width'])?$_category_config['ratio_width']:300;
+    $image_height = ($_category_config['ratio_height'])?$_category_config['ratio_height']:300;
+    $aspect_ratio = $_category_config['aspect_ratio'];
+    if($aspect_ratio){
+        $image_height = $image_width;
+    }
+    ?>
+    <ol class="product-items <?= /* @noEscape */ $type ?> products wrapper <?php if($product_type == 2): ?> no-padding divider-line<?php endif; ?> <?php if($product_type == 5 || $product_type == 6 || $product_type == 7 || $product_type == 8): ?>no-padding<?php endif; ?> <?php if($product_type == 6): ?>divider-line<?php endif; ?>">
+        <?php $iterator = 1; ?>
+        <?php foreach ($items as $_item): ?>
+            <?= /* @noEscape */ ($iterator++ == 1) ? '<li class="product-item">' : '</li><li class="product-item">' ?>
+            <div class="product-item-info type<?php echo $product_type; ?>" data-container="product-grid">
+              <div class="product photo product-item-photo">
+                <a href="<?php echo $_item->getProductUrl() ?>" tabindex="-1">
+                    <?php
+                        if($_category_config['aspect_ratio']){
+                            $productImage = $_imagehelper->init($_item, $image)->constrainOnly(FALSE)->keepAspectRatio(TRUE)->keepFrame(FALSE)->resize($image_width);
+                        }else{
+                            $productImage = $_imagehelper->init($_item, $image)->resize($image_width, $image_height);
+                        }
+                        $productImageUrl = $productImage->getUrl();
+                    ?>
+                        <img class="product-image-photo default_image" src="<?php echo $productImageUrl; ?>" width="<?php echo $image_width; ?>" height="<?php echo $image_height; ?>" alt="<?php echo $productImage->getLabel(); ?>"/>
+                    <?php if($_category_config['alternative_image']): ?>
+                    <?php
+                        if($_category_config['aspect_ratio']){
+                          $productHoverImage = $_imagehelper->init($_item, $hover_image)->constrainOnly(FALSE)->keepAspectRatio(TRUE)->keepFrame(FALSE)->resize($image_width);
+                        }else{
+                          $productHoverImage = $_imagehelper->init($_item, $hover_image)->resize($image_width, $image_height);
+                        }
+                        $productHoverImageUrl = $productHoverImage->getUrl();
+                    ?>
+                        <?php if($productImageUrl != str_replace("/thumbnail/","/small_image/",$productHoverImageUrl)): ?>
+                        <img class="product-image-photo hover_image" src="<?php echo $productHoverImageUrl; ?>" width="<?php echo $image_width; ?>" height="<?php echo $image_height; ?>" alt="<?php echo $productHoverImage->getLabel(); ?>"/>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </a>
+                <?php
+                    $product_label = "";
+                    if($_product_label_config['sale_label']) {
+                        if ($percentage = $_portohelper->getPercentage($_item)) {
+                            if($_product_label_config['sale_label_percent']) {
+                                $product_label .= '<div class="product-label sale-label">'.$percentage.'%'.'</div>';
+                            } else {
+                                $product_label .= '<div class="product-label sale-label">'.$_product_label_config['sale_label_text'].'</div>';
+                            }
+                        }
+                    }
+                    if($_product_label_config['new_label']) {
+                        $now = date("Y-m-d");
+                        $newsFrom= substr($_item->getData('news_from_date')?$_item->getData('news_from_date'):'',0,10);
+                        $newsTo=  substr($_item->getData('news_to_date')?$_item->getData('news_to_date'):'',0,10);
+
+                        if ($newsTo != '' || $newsFrom != ''){
+                            if (($newsTo != '' && $newsFrom != '' && $now>=$newsFrom && $now<=$newsTo) || ($newsTo == '' && $now >=$newsFrom) || ($newsFrom == '' && $now<=$newsTo)) {
+                                $product_label .= '<div class="product-label new-label">'.$_product_label_config['new_label_text'].'</div>';
+                            }
+                        }
+                    }
+                    if($product_label){
+                      echo '<div class="product-labels">'.$product_label.'</div>';
+                    }
+                ?>
+                <?php if($product_type == 3 || $product_type == 5 || $product_type == 6 || $product_type == 7 || $product_type == 8 || $product_type == 9): ?>
+                <div class="product-item-inner">
+                    <div class="product actions product-item-actions">
+                        <div class="actions-primary">
+                            <?php if ($_item->isSaleable()): ?>
+                              <?php $postParams = $block->getAddToCartPostParams($_item); ?>
+                              <form data-role="tocart-form" data-product-sku="<?= $block->escapeHtml($_item->getSku()) ?>" action="<?= $block->escapeUrl($postParams['action']) ?>" method="post">
+                                  <input type="hidden" name="product" value="<?= $block->escapeHtmlAttr($postParams['data']['product']) ?>">
+                                  <input type="hidden" name="<?= /* @noEscape */ Action::PARAM_NAME_URL_ENCODED ?>" value="<?= /* @noEscape */ $postParams['data'][Action::PARAM_NAME_URL_ENCODED] ?>">
+
+                                  <?php echo $block->getBlockHtml('formkey')?>
+                                  <button type="submit"
+                                          title="<?= $block->escapeHtml(__('Add to Cart')) ?>"
+                                          class="action tocart primary">
+                                      <span><?= $block->escapeHtml(__('Add to Cart')) ?></span>
+                                  </button>
+                              </form>
+                              <script type="text/x-magento-init">
+                              {
+                                  "[data-role=tocart-form], .form.map.checkout": {
+                                      "catalogAddToCart": {
+                                          "product_sku": "<?= $escaper->escapeJs($_item->getSku()); ?>"
+                                      }
+                                  }
+                              }
+                              </script>
+                            <?php else: ?>
+                                <?php if ($_item->getIsSalable()): ?>
+                                    <div class="stock available"><span><?php echo __('In stock') ?></span></div>
+                                <?php else: ?>
+                                    <div class="stock unavailable"><span><?php echo __('Out of stock') ?></span></div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                        <?php if ($mode == 'grid'): ?>
+                        <?php if ($this->helper('Magento\Wishlist\Helper\Data')->isAllow()): ?>
+                            <a href="#"
+                               class="action towishlist actions-secondary"
+                               title="<?php echo $block->escapeHtml(__('Add to Wish List')); ?>"
+                               aria-label="<?php echo $block->escapeHtml(__('Add to Wish List')); ?>"
+                               data-post='<?php echo $block->getAddToWishlistParams($_item); ?>'
+                               data-action="add-to-wishlist"
+                               role="button">
+                                <span><?php echo __('Add to Wish List') ?></span>
+                            </a>
+                        <?php endif; ?>
+                        <?php endif; ?>
+                        <?php if($_category_config['addtocompare']): ?>
+                        <?php
+                        $compareHelper = $this->helper('Magento\Catalog\Helper\Product\Compare');
+                        ?>
+                        <a href="#"
+                           class="action tocompare actions-secondary"
+                           title="<?php echo $block->escapeHtml(__('Add to Compare')); ?>"
+                           aria-label="<?php echo $block->escapeHtml(__('Add to Compare')); ?>"
+                           data-post='<?php echo $compareHelper->getPostDataParams($_item); ?>'
+                           role="button">
+                            <span><?php echo __('Add to Compare') ?></span>
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+              </div>
+                <div class="product details product-item-details">
+                  <?php
+                      $_productNameStripped = $block->stripTags($_item->getName(), null, true);
+                  ?>
+                  <strong class="product name product-item-name">
+                      <a class="product-item-link"
+                         href="<?php echo $_item->getProductUrl() ?>">
+                          <?php echo $_helper->productAttribute($_item, $_item->getName(), 'name'); ?>
+                      </a>
+                  </strong>
+                  <?php if($_category_config['rating_star']): ?>
+                  <?php
+                      $review_html = $block->getReviewsSummaryHtml($_item, $templateType);
+                  ?>
+                  <?php if($review_html): ?>
+                      <?php echo $review_html; ?>
+                  <?php else: ?>
+                  <div class="product-reviews-summary short">
+                      <div class="rating-summary">
+                          <span class="label"><span>Rating:</span></span>
+                          <div class="rating-result" title="0%">
+                              <span style="width:0"><span>0%</span></span>
+                          </div>
+                      </div>
+                  </div>
+                  <?php endif; ?>
+                  <?php endif; ?>
+
+                  <?php if($_category_config['product_price']): ?>
+                  <?php echo $block->getProductPriceHtml($_item, $type); ?>
+                  <?php endif; ?>
+
+                  <?= $block->getProductDetailsHtml($_item) ?>
+
+                  <?php if($product_type != 3 && $product_type != 5 && $product_type != 6 && $product_type != 7 && $product_type != 8 && $product_type != 9): ?>
+                  <div class="product-item-inner">
+                      <div class="product actions product-item-actions">
+                          <?php if ($mode == 'grid'): ?>
+                          <?php if($_category_config['addtowishlist'] && $product_type != 4): ?>
+                          <?php if ($this->helper('Magento\Wishlist\Helper\Data')->isAllow()): ?>
+                              <a href="#"
+                                 class="action towishlist actions-secondary"
+                                 title="<?php echo $block->escapeHtml(__('Add to Wish List')); ?>"
+                                 aria-label="<?php echo $block->escapeHtml(__('Add to Wish List')); ?>"
+                                 data-post='<?php echo $block->getAddToWishlistParams($_item); ?>'
+                                 data-action="add-to-wishlist"
+                                 role="button">
+                                  <span><?php echo __('Add to Wish List') ?></span>
+                              </a>
+                          <?php endif; ?>
+                          <?php endif; ?>
+                          <?php endif; ?>
+                          <div class="actions-primary">
+                              <?php if ($_item->isSaleable()): ?>
+                                <?php $postParams = $block->getAddToCartPostParams($_item); ?>
+                                <form data-role="tocart-form" data-product-sku="<?= $block->escapeHtml($_item->getSku()) ?>" action="<?= $block->escapeUrl($postParams['action']) ?>" method="post">
+                                    <input type="hidden" name="product" value="<?= $block->escapeHtmlAttr($postParams['data']['product']) ?>">
+                                    <input type="hidden" name="<?= /* @noEscape */ Action::PARAM_NAME_URL_ENCODED ?>" value="<?= /* @noEscape */ $postParams['data'][Action::PARAM_NAME_URL_ENCODED] ?>">
+                                    <?php if($product_type == 10):?>
+                                        <div class="qty-box">
+                                            <a href="javascript:void(0)" class="qtyminus"><i class="porto-icon-minus"></i></a>
+                                            <input type="text" name="qty" id="qty" maxlength="12" value="<?php echo ($this->getMinimalQty($_item)?$this->getMinimalQty($_item):1) ?>" title="<?php /* @escapeNotVerified */ echo __('Qty') ?>" class="input-text qty" data-validate="<?php echo $block->escapeHtml(json_encode($block->getQuantityValidators())) ?>"/>
+                                            <a href="javascript:void(0)" class="qtyplus"><i class="porto-icon-plus"></i></a>
+                                        </div>
+                                    <?php endif;?>
+                                    <?= $block->getBlockHtml('formkey') ?>
+                                    <button type="submit"
+                                            title="<?= $block->escapeHtml(__('Add to Cart')) ?>"
+                                            class="action tocart primary">
+                                        <span><?= $block->escapeHtml(__('Add to Cart')) ?></span>
+                                    </button>
+                                </form>
+                                <script type="text/x-magento-init">
+                                {
+                                    "[data-role=tocart-form], .form.map.checkout": {
+                                        "catalogAddToCart": {
+                                            "product_sku": "<?= $escaper->escapeJs($_item->getSku()); ?>"
+                                        }
+                                    }
+                                }
+                                </script>
+                              <?php else: ?>
+                                  <?php if ($_item->getIsSalable()): ?>
+                                      <div class="stock available"><span><?php echo __('In stock') ?></span></div>
+                                  <?php else: ?>
+                                      <div class="stock unavailable"><span><?php echo __('Out of stock') ?></span></div>
+                                  <?php endif; ?>
+                              <?php endif; ?>
+                          </div>
+                          <?php if ($mode == 'grid'): ?>
+                          <?php if($_category_config['addtowishlist'] && $product_type == 4): ?>
+                          <?php if ($this->helper('Magento\Wishlist\Helper\Data')->isAllow()): ?>
+                              <a href="#"
+                                 class="action towishlist actions-secondary"
+                                 title="<?php echo $block->escapeHtml(__('Add to Wish List')); ?>"
+                                 aria-label="<?php echo $block->escapeHtml(__('Add to Wish List')); ?>"
+                                 data-post='<?php echo $block->getAddToWishlistParams($_item); ?>'
+                                 data-action="add-to-wishlist"
+                                 role="button">
+                                  <span><?php echo __('Add to Wish List') ?></span>
+                              </a>
+                          <?php endif; ?>
+                          <?php endif; ?>
+                          <?php endif; ?>
+                          <?php if ($mode == 'list'): ?>
+                          <?php if($_category_config['addtowishlist']): ?>
+                          <?php if ($this->helper('Magento\Wishlist\Helper\Data')->isAllow()): ?>
+                              <a href="#"
+                                 class="action towishlist actions-secondary"
+                                 title="<?php echo $block->escapeHtml(__('Add to Wish List')); ?>"
+                                 aria-label="<?php echo $block->escapeHtml(__('Add to Wish List')); ?>"
+                                 data-post='<?php echo $block->getAddToWishlistParams($_item); ?>'
+                                 data-action="add-to-wishlist"
+                                 role="button">
+                                  <span><?php echo __('Add to Wish List') ?></span>
+                              </a>
+                          <?php endif; ?>
+                          <?php endif; ?>
+                          <?php endif; ?>
+                          <?php if($_category_config['addtocompare']): ?>
+                          <?php
+                          $compareHelper = $this->helper('Magento\Catalog\Helper\Product\Compare');
+                          ?>
+                          <a href="#"
+                             class="action tocompare actions-secondary"
+                             title="<?php echo $block->escapeHtml(__('Add to Compare')); ?>"
+                             aria-label="<?php echo $block->escapeHtml(__('Add to Compare')); ?>"
+                             data-post='<?php echo $compareHelper->getPostDataParams($_item); ?>'
+                             role="button">
+                              <span><?php echo __('Add to Compare') ?></span>
+                          </a>
+                          <?php endif; ?>
+                      </div>
+                  </div>
+                  <?php endif; ?>
+                </div>
+            </div>
+            <?= ($iterator == count($items) + 1) ? '</li>' : '' ?>
+        <?php endforeach ?>
+    </ol>
+<?php endif;?>

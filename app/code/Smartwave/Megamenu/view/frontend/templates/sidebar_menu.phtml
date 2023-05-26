@@ -1,0 +1,52 @@
+<?php
+/**
+ * Copyright © 2018 Porto. All rights reserved.
+ */
+
+?>
+<?php
+/**
+ * Top menu for store
+ *
+ * @see \Smartwave\Megamenu\Block\Topmenu
+ */
+?>
+<?php
+    $_helper = $this->helper('Smartwave\Megamenu\Helper\Data');
+    $_config = $_helper->getConfig('sw_megamenu');
+    $columnsLimit = 0;
+    if($_config['general']['enable']) {
+?>
+<?php $_menu = $block->getMegamenuHtml(); ?>
+<div class="sticky-sidenav sections nav-sections">
+  <nav class="navigation sw-megamenu side-megamenu" role="navigation">
+    <ul>
+        <?php echo $_menu; ?>
+    </ul>
+  </nav>
+</div>
+<style>
+.sticky-sidenav {
+    will-change: position,top,bottom,left;
+    padding-bottom: 1px;
+}
+</style>
+<script type="text/javascript">
+    require([
+        'jquery',
+        'themeSticky',
+        'Smartwave_Megamenu/js/sw_megamenu'
+    ], function ($) {
+        $(".sw-megamenu").swMegamenu();
+        $(".sidebar-nav .sticky-sidenav").themeSticky({
+          autoInit: true,
+          minWidth: 992,
+          containerSelector: '.page-main .page-main-inner',
+          autoFit: true,
+          paddingOffsetBottom: 10
+        });
+    });
+</script>
+<?php
+    }
+?>
