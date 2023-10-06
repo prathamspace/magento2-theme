@@ -1,12 +1,5 @@
 <?php
-/**
- * Copyright © Magento, Inc. All rights reserved.
- * See COPYING.txt for license details.
- */
 
-/**
- * Environment initialization
- */
 error_reporting(E_ALL);
 if (in_array('phar', \stream_get_wrappers())) {
     stream_wrapper_unregister('phar');
